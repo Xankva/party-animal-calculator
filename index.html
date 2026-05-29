@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Party Animal · Fishing Calculator</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:          #090D16;
+            --bg-2:        #0E1420;
+            --surface:     rgba(255,255,255,0.042);
+            --surface-hi:  rgba(255,255,255,0.07);
+            --border:      rgba(255,255,255,0.07);
+            --border-hi:   rgba(255,255,255,0.14);
+            --mint:        #00FFB2;
+            --mint-dim:    rgba(0,255,178,0.12);
+            --mint-glow:   rgba(0,255,178,0.06);
+            --teal:        #00D4A0;
+            --amber:       #FFAE42;
+            --red:         #FF5368;
+            --txt-1:       #EEF2FF;
+            --txt-2:       #7A8599;
+            --txt-3:       #3D4557;
+            --mono:        'Space Mono', monospace;
+            --sans:        'DM Sans', sans-serif;
+            --r-sm:        10px;
+            --r-md:        16px;
+            --r-lg:        22px;
+            --r-xl:        28px;
+        }
+
+        html { background: var(--bg); color: var(--txt-1); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+        body { min-height: 100svh; background: var(--bg); overflow-x: hidden; }
+
+        /* ── Grain overlay ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+            background-size: 256px 256px;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* ── Ambient blobs ── */
+        .blob { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; }
+        .blob-1 { width: 320px; height: 320px; background: rgba(0,255,178,0.06); top: -80px; right: -60px; }
+        .blob-2 { width: 280px; height: 280px; background: rgba(0,80,255,0.06); bottom: 60px; left: -80px; }
+
+        /* ── App shell ── */
+        #app {
+            position: relative; z-index: 1;
+            min-height: 100svh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0 0 40px;
+        }
+
+        /* ── Top bar ── */
+        .topbar {
+            width: 100%; max-width: 480px;
+            padding: 20px 20px 0;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 9px;
+        }
+        .topbar-fish { font-size: 22px; }
+        .topbar-title {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--txt-2);
+        }
+        .btn-reset {
+            background: none; border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            color: var(--txt-2); font-family: var(--sans); font-size: 12px;
+            padding: 7px 14px; cursor: pointer;
+            transition: all .2s;
+        }
+        .btn-reset:hover { border-color: var(--border-hi); color: var(--txt-1); background: var(--surface); }
+
+        /* ── Main container ── */
+        .main { width: 100%; max-width: 480px; padding: 20px 16px 0; }
+
+        /* ── Radial ring card ── */
+        .ring-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 28px 24px 22px;
+            margin-bottom: 14px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .ring-wrap { position: relative; width: 180px; height: 180px; margin-bottom: 20px; }
+        .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .ring-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 10; }
+        .ring-fill {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 502.65; /* 2π × 80 */
+            stroke-dashoffset: 502.65;
+            transition: stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;
+        }
+        .ring-center {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 2px;
+        }
+        .ring-num {
+            font-family: var(--mono);
+            font-size: 38px; font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--txt-1);
+            line-height: 1;
+        }
+        .ring-cap {
+            font-size: 11px; color: var(--txt-3);
+            font-family: var(--mono); letter-spacing: 1px;
+        }
+        .ring-pct {
+            font-size: 12px; color: var(--mint);
+            font-family: var(--mono);
+        }
+
+        /* ── Stats strip ── */
+        .stats-strip {
+            width: 100%;
+            display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr;
+            gap: 0;
+        }
+        .stat-div { background: var(--border); }
+        .stat-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; }
+        .stat-lbl { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--txt-3); font-family: var(--mono); }
+        .stat-val { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--txt-1); }
+        .stat-val.mint  { color: var(--mint); }
+        .stat-val.amber { color: var(--amber); }
+
+        /* ── Input card ── */
+        .input-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 22px 20px 20px;
+            margin-bottom: 14px;
+        }
+
+        .round-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+            color: var(--mint); background: var(--mint-dim);
+            border: 1px solid rgba(0,255,178,0.18);
+            border-radius: 99px; padding: 5px 12px;
+            margin-bottom: 18px;
+        }
+        .round-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: var(--mint);
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        .inputs-row {
+            display: grid; grid-template-columns: 1fr auto 1fr;
+            align-items: center; gap: 10px;
+            margin-bottom: 16px;
+        }
+        .arrow-icon { color: var(--txt-3); font-size: 18px; text-align: center; flex-shrink: 0; }
+
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field-lbl {
+            font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+            color: var(--txt-2); font-family: var(--mono); padding-left: 2px;
+        }
+        .field-input {
+            background: rgba(255,255,255,0.055);
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-md);
+            color: var(--txt-1);
+            font-family: var(--mono);
+            font-size: 22px; font-weight: 700;
+            padding: 14px 14px;
+            width: 100%; outline: none;
+            -moz-appearance: textfield;
+            transition: border-color .2s, background .2s, box-shadow .2s;
+            min-height: 58px;
+            text-align: center;
+        }
+        .field-input::-webkit-outer-spin-button,
+        .field-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+        .field-input::placeholder { color: var(--txt-3); font-size: 16px; font-weight: 400; }
+        .field-input:focus {
+            border-color: var(--mint);
+            background: var(--mint-glow);
+            box-shadow: 0 0 0 4px rgba(0,255,178,0.08);
+        }
+        .field-input.auto-fill { border-color: rgba(0,255,178,0.35); background: var(--mint-glow); }
+
+        /* Delta preview */
+        .delta-preview {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px 14px;
+            border-radius: var(--r-md);
+            margin-bottom: 14px;
+            font-family: var(--mono); font-size: 13px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            min-height: 42px;
+            transition: background .25s, border-color .25s;
+        }
+        .delta-preview.pos { background: rgba(0,255,178,0.07); border-color: rgba(0,255,178,0.2); }
+        .delta-preview.neg { background: rgba(255,83,104,0.07); border-color: rgba(255,83,104,0.2); }
+        .delta-preview.zero { background: rgba(255,174,66,0.07); border-color: rgba(255,174,66,0.18); }
+        .delta-lbl { color: var(--txt-2); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+        .delta-val { font-size: 20px; font-weight: 700; }
+        .delta-val.pos { color: var(--mint); }
+        .delta-val.neg { color: var(--red); }
+        .delta-val.zero { color: var(--amber); }
+
+        /* Submit button */
+        .btn-submit {
+            width: 100%; min-height: 56px;
+            background: var(--mint);
+            border: none; border-radius: var(--r-lg);
+            color: #050A0E;
+            font-family: var(--sans); font-size: 16px; font-weight: 700;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: opacity .2s, transform .15s, box-shadow .2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-submit:hover  { opacity: .88; transform: translateY(-1px); box-shadow: 0 10px 30px rgba(0,255,178,0.22); }
+        .btn-submit:active { transform: translateY(0) scale(0.98); box-shadow: none; }
+        .btn-submit:disabled { opacity: .25; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ── Cap reached state ── */
+        .cap-card {
+            background: rgba(0,255,178,0.07);
+            border: 1px solid rgba(0,255,178,0.25);
+            border-radius: var(--r-xl);
+            padding: 28px 20px;
+            text-align: center; margin-bottom: 14px;
+        }
+        .cap-icon { font-size: 44px; margin-bottom: 12px; }
+        .cap-title { font-family: var(--mono); font-size: 16px; color: var(--mint); letter-spacing: 1px; margin-bottom: 6px; }
+        .cap-sub { font-size: 13px; color: var(--txt-2); }
+
+        /* ── History card ── */
+        .history-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            overflow: hidden;
+        }
+        .history-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .history-head-lbl {
+            font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--txt-2);
+        }
+        .history-count {
+            font-family: var(--mono); font-size: 11px; color: var(--txt-3);
+            background: rgba(255,255,255,0.05); border-radius: 99px;
+            padding: 3px 10px;
+        }
+        .history-list { list-style: none; max-height: 260px; overflow-y: auto; }
+        .history-list::-webkit-scrollbar { width: 3px; }
+        .history-list::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+        .history-empty {
+            padding: 28px 20px; text-align: center;
+            font-size: 13px; color: var(--txt-3);
+        }
+
+        .history-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 20px;
+            border-bottom: 1px solid var(--border);
+            animation: fadeSlide .3s cubic-bezier(0.4,0,0.2,1);
+            transition: background .15s;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-item:hover { background: rgba(255,255,255,0.025); }
+        @keyframes fadeSlide { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+
+        .h-num {
+            font-family: var(--mono); font-size: 10px; color: var(--txt-3);
+            min-width: 22px; text-align: right;
+        }
+        .h-delta {
+            font-family: var(--mono); font-size: 16px; font-weight: 700;
+            flex: 1;
+        }
+        .h-delta.pos { color: var(--mint); }
+        .h-delta.neg { color: var(--red); }
+        .h-delta.zero { color: var(--amber); }
+        .h-detail { font-size: 11px; color: var(--txt-3); text-align: right; }
+        .h-detail span { display: block; }
+        .h-total { color: var(--txt-2); }
+        .btn-del {
+            background: none; border: 1px solid transparent;
+            border-radius: 8px; color: var(--txt-3);
+            font-size: 15px; cursor: pointer; padding: 6px 8px;
+            transition: all .15s; line-height: 1; min-width: 32px; min-height: 32px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-del:hover { border-color: rgba(255,83,104,0.3); color: var(--red); background: rgba(255,83,104,0.08); }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 24px; left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: rgba(14,20,32,0.95); border: 1px solid var(--border-hi);
+            border-radius: var(--r-md); padding: 12px 20px;
+            font-size: 13px; font-family: var(--sans); font-weight: 500;
+            color: var(--txt-1); backdrop-filter: blur(20px);
+            display: flex; align-items: center; gap: 8px;
+            transition: transform .35s cubic-bezier(0.34,1.56,0.64,1), opacity .3s;
+            opacity: 0; z-index: 9999; white-space: nowrap;
+            pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* ── Transitions ── */
+        .fade-enter-active, .fade-leave-active { transition: opacity .25s, transform .25s; }
+        .fade-enter-from { opacity: 0; transform: translateY(8px); }
+        .fade-leave-to   { opacity: 0; transform: translateY(-8px); }
+
+        @media (min-width: 480px) {
+            .ring-wrap { width: 200px; height: 200px; }
+            .ring-num  { font-size: 44px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div id="app">
+        <!-- Top bar -->
+        <div class="topbar">
+            <div class="topbar-brand">
+                <span class="topbar-fish">🎣</span>
+                <span class="topbar-title">Party Animal</span>
+            </div>
+            <button class="btn-reset" @click="confirmReset">↺ Reset</button>
+        </div>
+
+        <div class="main">
+
+            <!-- Radial ring progress card -->
+            <div class="ring-card">
+                <div class="ring-wrap">
+                    <svg class="ring-svg" viewBox="0 0 180 180">
+                        <circle class="ring-track" cx="90" cy="90" r="80"/>
+                        <circle class="ring-fill" cx="90" cy="90" r="80"
+                            :style="ringStyle"
+                            :stroke="ringColor"/>
+                    </svg>
+                    <div class="ring-center">
+                        <div class="ring-num">{{ total }}</div>
+                        <div class="ring-cap">/ 900</div>
+                        <div class="ring-pct">{{ pct }}%</div>
+                    </div>
+                </div>
+
+                <div class="stats-strip">
+                    <div class="stat-item">
+                        <span class="stat-lbl">Rounds</span>
+                        <span class="stat-val">{{ history.length }}</span>
+                    </div>
+                    <div class="stat-div"></div>
+                    <div class="stat-item">
+                        <span class="stat-lbl">Last +</span>
+                        <span class="stat-val mint">{{ lastGain === null ? '—' : '+' + lastGain }}</span>
+                    </div>
+                    <div class="stat-div"></div>
+                    <div class="stat-item">
+                        <span class="stat-lbl">Left</span>
+                        <span class="stat-val amber">{{ remaining }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cap reached -->
+            <transition name="fade">
+                <div v-if="isCapped" class="cap-card">
+                    <div class="cap-icon">🏆</div>
+                    <div class="cap-title">CAP REACHED</div>
+                    <div class="cap-sub">You've earned 900 treats this session!</div>
+                </div>
+            </transition>
+
+            <!-- Input card -->
+            <transition name="fade">
+                <div v-if="!isCapped" class="input-card">
+                    <div class="round-badge">
+                        <span class="round-dot"></span>
+                        Round {{ history.length + 1 }}
+                    </div>
+
+                    <div class="inputs-row">
+                        <div class="field">
+                            <label class="field-lbl">Before Sale</label>
+                            <input
+                                class="field-input"
+                                :class="{ 'auto-fill': autoFilled }"
+                                type="number" inputmode="numeric"
+                                placeholder="0"
+                                v-model.number="tBefore"
+                                @focus="autoFilled = false"
+                                ref="beforeInput"
+                            />
+                        </div>
+                        <div class="arrow-icon">→</div>
+                        <div class="field">
+                            <label class="field-lbl">After Sale</label>
+                            <input
+                                class="field-input"
+                                type="number" inputmode="numeric"
+                                placeholder="0"
+                                v-model.number="tAfter"
+                                ref="afterInput"
+                                @keydown.enter="submit"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Delta preview -->
+                    <div class="delta-preview" :class="deltaClass">
+                        <span class="delta-lbl">This round</span>
+                        <span class="delta-val" :class="deltaClass">
+                            {{ deltaDisplay }}
+                        </span>
+                        <span v-if="cappedGain !== null && cappedGain < deltaRaw && deltaRaw > 0"
+                              style="font-size:10px; color: var(--amber); font-family: var(--mono);">
+                            (capped +{{ cappedGain }})
+                        </span>
+                    </div>
+
+                    <button class="btn-submit" @click="submit" :disabled="!canSubmit">
+                        Record Sale &nbsp;→
+                    </button>
+                </div>
+            </transition>
+
+            <!-- History -->
+            <div class="history-card">
+                <div class="history-head">
+                    <span class="history-head-lbl">Session History</span>
+                    <span class="history-count">{{ history.length }} rounds</span>
+                </div>
+                <ul class="history-list">
+                    <li v-if="history.length === 0" class="history-empty">No rounds yet — start fishing!</li>
+                    <li v-for="(item, i) in [...history].reverse()" :key="item.id" class="history-item">
+                        <span class="h-num">{{ history.length - i }}</span>
+                        <span class="h-delta" :class="item.delta > 0 ? 'pos' : item.delta < 0 ? 'neg' : 'zero'">
+                            {{ item.delta > 0 ? '+' : '' }}{{ item.delta }}
+                        </span>
+                        <div class="h-detail">
+                            <span>{{ item.before }} → {{ item.after }}</span>
+                            <span class="h-total">total: {{ item.runningTotal }}</span>
+                        </div>
+                        <button class="btn-del" @click="deleteEntry(item.id)" aria-label="Delete entry">✕</button>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- Toast -->
+        <div class="toast" :class="{ show: toastVisible }">
+            <span>{{ toastIcon }}</span>{{ toastMsg }}
+        </div>
+    </div>
+
+    <script>
+    const { createApp, ref, computed, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const CAP = 900;
+
+            const tBefore   = ref('');
+            const tAfter    = ref('');
+            const autoFilled = ref(false);
+            const history   = ref([]);
+            const total     = ref(0);
+            const lastGain  = ref(null);
+            const beforeInput = ref(null);
+            const afterInput  = ref(null);
+
+            let idCounter = 0;
+            let toastTimer = null;
+            const toastVisible = ref(false);
+            const toastMsg     = ref('');
+            const toastIcon    = ref('');
+
+            const pct       = computed(() => Math.min(Math.round((total.value / CAP) * 100), 100));
+            const remaining = computed(() => Math.max(0, CAP - total.value));
+            const isCapped  = computed(() => total.value >= CAP);
+
+            const deltaRaw = computed(() => {
+                const b = Number(tBefore.value), a = Number(tAfter.value);
+                if (tBefore.value === '' || tAfter.value === '') return null;
+                return a - b;
+            });
+
+            const cappedGain = computed(() => {
+                if (deltaRaw.value === null || deltaRaw.value <= 0) return null;
+                return Math.min(deltaRaw.value, remaining.value);
+            });
+
+            const deltaDisplay = computed(() => {
+                if (deltaRaw.value === null) return '—';
+                return (deltaRaw.value > 0 ? '+' : '') + deltaRaw.value;
+            });
+
+            const deltaClass = computed(() => {
+                if (deltaRaw.value === null) return '';
+                if (deltaRaw.value > 0)  return 'pos';
+                if (deltaRaw.value < 0)  return 'neg';
+                return 'zero';
+            });
+
+            const canSubmit = computed(() =>
+                tBefore.value !== '' && tAfter.value !== '' &&
+                !isNaN(Number(tBefore.value)) && !isNaN(Number(tAfter.value))
+            );
+
+            // Ring style
+            const CIRCUMFERENCE = 2 * Math.PI * 80; // ≈ 502.65
+            const ringStyle = computed(() => {
+                const offset = CIRCUMFERENCE - (pct.value / 100) * CIRCUMFERENCE;
+                return { strokeDashoffset: offset };
+            });
+            const ringColor = computed(() => {
+                if (pct.value >= 100) return '#00FFB2';
+                if (pct.value >= 75)  return '#FFAE42';
+                return '#00D4A0';
+            });
+
+            function submit() {
+                if (!canSubmit.value) return;
+                const b = Number(tBefore.value);
+                const a = Number(tAfter.value);
+                const delta = a - b;
+                const gain  = delta > 0 ? Math.min(delta, remaining.value) : 0;
+
+                total.value = Math.min(total.value + gain, CAP);
+                if (gain > 0) lastGain.value = gain;
+
+                history.value.push({
+                    id: ++idCounter,
+                    before: b,
+                    after: a,
+                    delta,
+                    gain,
+                    runningTotal: total.value
+                });
+
+                // Auto-forward: next Before = current After
+                tBefore.value = a;
+                tAfter.value  = '';
+                autoFilled.value = true;
+
+                // Toast
+                if (delta > 0) {
+                    if (gain < delta) {
+                        showToast(`+${gain} treats (capped)`, '🎯');
+                    } else {
+                        showToast(`+${gain} treats earned!`, '🐟');
+                    }
+                } else if (delta === 0) {
+                    showToast('No change this round.', '➖');
+                } else {
+                    showToast(`${delta} treats — no gain added.`, '📉');
+                }
+
+                if (!isCapped.value) {
+                    nextTick(() => afterInput.value?.focus());
+                }
+            }
+
+            function deleteEntry(id) {
+                const idx = history.value.findIndex(h => h.id === id);
+                if (idx === -1) return;
+                const item = history.value[idx];
+                history.value.splice(idx, 1);
+                // Recompute total from scratch
+                total.value = 0;
+                lastGain.value = null;
+                history.value.forEach(h => {
+                    const gain = h.delta > 0 ? Math.min(h.delta, CAP - total.value) : 0;
+                    h.gain = gain;
+                    total.value = Math.min(total.value + gain, CAP);
+                    h.runningTotal = total.value;
+                    if (gain > 0) lastGain.value = gain;
+                });
+                showToast('Entry deleted & totals recalculated.', '🗑️');
+            }
+
+            function confirmReset() {
+                if (history.value.length === 0 && total.value === 0) return;
+                history.value = [];
+                total.value   = 0;
+                lastGain.value = null;
+                tBefore.value  = '';
+                tAfter.value   = '';
+                autoFilled.value = false;
+                showToast('Session reset.', '🔄');
+                nextTick(() => beforeInput.value?.focus());
+            }
+
+            function showToast(msg, icon = '✓') {
+                toastMsg.value  = msg;
+                toastIcon.value = icon + ' ';
+                toastVisible.value = true;
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => { toastVisible.value = false; }, 2800);
+            }
+
+            return {
+                tBefore, tAfter, autoFilled,
+                history, total, lastGain,
+                pct, remaining, isCapped,
+                deltaRaw, cappedGain, deltaDisplay, deltaClass,
+                canSubmit, ringStyle, ringColor,
+                toastVisible, toastMsg, toastIcon,
+                beforeInput, afterInput,
+                submit, deleteEntry, confirmReset
+            };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>
