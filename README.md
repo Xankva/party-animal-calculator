@@ -1,76 +1,94 @@
-# 🎣 Party Animal - Fishing Calculator & Journal
+# 🎣 Party Animal — Fishing Calculator & Journal
 
-A premium, interactive, single-page application built for *Party Animals* players to track their daily fishing sessions, calculate earnings toward the 900 treats daily cap, checklist caught species, and get optimized gear recommendations.
+A premium, interactive single-page app for *Party Animals* players to track daily fishing sessions, calculate treat earnings toward the 900-treat daily cap, log caught species, and get optimized gear recommendations — all with zero installs and full offline support.
+
+---
 
 ## Features
 
-1. **📊 Stats Dashboard**:
-   - Dynamic circular SVG progress ring tracking your treats total (capped at 900).
-   - Stats boxes tracking round history count, last gain, and fish breakdown count by rarities.
-   - Comprehensive session history list with rollback/delete capability.
-2. **🧺 Bucket Calculator**:
-   - Click caught fish species directly to add them to your bucket.
-   - Automatically calculates cookie values (Common = 2, Uncommon = 5, Rare = 12, Epic = 25, Legendary = 50) and updates the sale total.
-   - Manual Mode fallback: allows traditional entry of "Before Sale" and "After Sale" numbers.
-3. **📔 Fish Journal**:
-   - Extensive interactive database of 48 fish types from Autumn, Winter, and Spring Cabins.
-   - Live filters for name, description, rarity, location spot, weather, and season.
-   - Checkbox checklist tracking caught species (stored locally).
-4. **🛠️ Gear Guide**:
-   - Choose the active seasonal environment factors: Season, Weather, Spot, and Time.
-   - Instantly recommends the correct Rod Class (Light vs. Heavy), Hook, and Bait.
-   - Lists the pool of active fish species you can catch under those factors.
-5. **🔄 Persistence**:
-   - Synchronizes checklist, session history, totals, and calculator mode settings to `localStorage`.
+### 📊 Stats Dashboard
+- Circular SVG progress ring showing your current treat total against the 900-treat daily cap.
+- At-a-glance stat boxes for round count, last gain, and fish caught broken down by rarity.
+- Full session history list with per-entry rollback and delete support.
+
+### 🧺 Bucket Calculator
+- Click fish species directly to add them to your active bucket.
+- Auto-calculates treat values per rarity tier: Common (2), Uncommon (5), Rare (12), Epic (25), Legendary (50).
+- Manual Mode fallback for entering Before/After Sale totals by hand.
+
+### 📔 Fish Journal
+- Interactive database of all 48 fish species across Autumn, Winter, and Spring Cabins.
+- Live filters by name, description, rarity, spot, weather, and season.
+- Persistent checklist to track which species you've caught, saved to `localStorage`.
+
+### 🛠️ Gear Guide
+- Set your active environment: Season, Weather, Spot, and Time of Day.
+- Instantly recommends the correct Rod Class (Light vs. Heavy), Hook, and Bait.
+- Displays the full pool of catchable species under your current conditions.
+
+### 🔄 Persistence
+- All progress — checklist state, session history, treat totals, and calculator mode — is automatically saved to `localStorage` with no account required.
 
 ---
 
 ## Technical Details
 
-- **Framework**: Vue 3 (production-ready CDN package)
-- **Styling**: Premium Vanilla CSS3 featuring custom root design system variables, glassmorphic layout card stylings, ambient glow blobs, responsive viewports, custom scrollbars, and animations.
-- **Dependency-Free**: Pure HTML/CSS/JS with zero build steps or preprocessors, making it extremely fast to load and simple to deploy.
+| | |
+|---|---|
+| **Framework** | Vue 3 (production CDN build) |
+| **Styling** | Vanilla CSS3 with custom design tokens, glassmorphic cards, ambient glow blobs, responsive layout, custom scrollbars, and animations |
+| **Dependencies** | None — pure HTML/CSS/JS, no build step required |
+| **Deployment** | Any static host (GitHub Pages, Netlify, Cloudflare Pages, etc.) |
 
 ---
 
-## 🚀 How to Host on GitHub Pages
+## 🚀 Hosting on GitHub Pages
 
-Since this is a static project, hosting it on **GitHub Pages** is completely free, instant, and requires no build steps. Below are the two main ways to deploy it.
+Since this is a fully static project, GitHub Pages hosts it for free with no build configuration needed.
 
-### Option 1: Direct Branch Deployment (Easiest)
+### Option 1: Direct Branch Deployment (Simplest)
 
-1. **Initialize Git and Push to GitHub**:
-   Open a terminal in the project directory:
+1. **Initialize and push to GitHub:**
    ```bash
    git init
    git add .
    git commit -m "Initialize Party Animal Fishing Calculator"
-   ```
-   Create a repository on GitHub (e.g. `party-animal-calculator`), and link it:
-   ```bash
    git remote add origin https://github.com/<your-username>/party-animal-calculator.git
    git branch -M main
    git push -u origin main
    ```
 
-2. **Enable GitHub Pages**:
-   - Go to your repository page on GitHub.
-   - Click **Settings** (top navigation bar).
-   - Navigate to **Pages** in the left sidebar menu (under the "Code and automation" section).
-   - Under **Build and deployment**, select **Deploy from a branch** as the source.
-   - Under **Branch**, select **main** and set the folder path to `/ (root)`.
+2. **Enable GitHub Pages:**
+   - Go to your repository on GitHub.
+   - Open **Settings → Pages** (under *Code and automation*).
+   - Set **Source** to `Deploy from a branch`.
+   - Set **Branch** to `main` and folder to `/ (root)`.
    - Click **Save**.
 
-Your site will be live at `https://<your-username>.github.io/party-animal-calculator/` within 1–2 minutes!
+Your app will be live at `https://<your-username>.github.io/party-animal-calculator/` within a minute or two.
 
 ---
 
-### Option 2: Automated Deployment via GitHub Actions (Recommended)
+### Option 2: GitHub Actions (Recommended for ongoing updates)
 
-We have included a pre-configured GitHub Actions workflow file in `.github/workflows/deploy.yml`. When you push to GitHub, the workflow automatically builds, checks, and deploys your code to a dedicated `gh-pages` branch.
+A pre-configured workflow file is included at `.github/workflows/deploy.yml`. Every push to `main` automatically deploys to the `gh-pages` branch.
 
-To use this method:
-1. Make sure the `.github/workflows/deploy.yml` file is in your repository.
-2. In your GitHub Repository, go to **Settings** -> **Pages**.
-3. Under **Build and deployment**, change the Source dropdown to **GitHub Actions**.
-4. GitHub will handle the rest! Every time you commit and push changes, the page will automatically deploy.
+1. Make sure `.github/workflows/deploy.yml` is present in your repository.
+2. Go to **Settings → Pages**.
+3. Set **Source** to `GitHub Actions`.
+
+That's it — future pushes deploy automatically.
+
+---
+
+## 📄 License
+
+This project is released under the [MIT License](LICENSE). You're free to use, modify, and distribute it for personal or non-commercial purposes.
+
+---
+
+## 🙏 Credits
+
+- **Game:** [Party Animals](https://www.party-animals.net/) by Recreate Games — all fish species, treat values, and game mechanics belong to their respective owners.
+- **Vue 3:** [vuejs.org](https://vuejs.org/) — used via CDN under the MIT License.
+- Built with 💙 for the Party Animals community.
